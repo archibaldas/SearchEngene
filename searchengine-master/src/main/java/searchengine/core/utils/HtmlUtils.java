@@ -1,6 +1,5 @@
 package searchengine.core.utils;
 
-import lombok.RequiredArgsConstructor;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
@@ -12,7 +11,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 @UtilityClass
-@RequiredArgsConstructor
 @Slf4j
 public class HtmlUtils {
 
