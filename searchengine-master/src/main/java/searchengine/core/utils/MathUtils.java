@@ -1,6 +1,5 @@
 package searchengine.core.utils;
 
-import lombok.RequiredArgsConstructor;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import searchengine.model.entity.Page;
@@ -9,7 +8,6 @@ import java.util.Map;
 
 @UtilityClass
 @Slf4j
-@RequiredArgsConstructor
 public class MathUtils {
 
     public static double getTrashHold(long pageCount){
