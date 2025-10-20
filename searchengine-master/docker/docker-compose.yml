@@ -1,0 +1,14 @@
+version: '3'
+  
+services: 
+  search-engine:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+    - MYSQL_ROOT_PASSWORD=root
+    - MYSQL_USER=user
+    - MYSQL_PASSWORD=12345
+    - MYSQL_DATABASE=search_engine_db
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
