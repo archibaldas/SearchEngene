@@ -2,54 +2,52 @@ package searchengine.services.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import searchengine.config.Site;
+import searchengine.config.SitesList;
 import searchengine.core.dto.PageDto;
 import searchengine.core.dto.SearchIndexDto;
 import searchengine.core.utils.HtmlUtils;
 import searchengine.exceptions.NoFoundEntityException;
+import searchengine.exceptions.PageIndexingException;
 import searchengine.mapper.PageMapper;
 import searchengine.mapper.SearchIndexMapper;
 import searchengine.mapper.SiteMapper;
-import searchengine.model.entity.Lemma;
-import searchengine.model.entity.Page;
-import searchengine.model.entity.SearchIndex;
-import searchengine.model.entity.SiteEntity;
+import searchengine.model.entity.*;
 import searchengine.model.services.*;
 import searchengine.services.DataProcessorFacade;
 
 import java.net.MalformedURLException;
+import java.time.Instant;
 import java.util.List;
+
+import static searchengine.core.utils.HtmlUtils.*;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class DataProcessorFacadeImpl implements DataProcessorFacade {
 
-    private final LemmaService lemmaService;
-
     private final SiteService siteService;
     private final SiteMapper siteMapper;
     private final PageService pageService;
     private final PageMapper pageMapper;
+    private final LemmaService lemmaService;
     private final SearchIndexMapper searchIndexMapper;
     private final IndexService indexService;
 
-
     @Override
-    public SiteEntity findOrCreateSiteInDatabase(Site site) {
-        try{
-            return siteService.findByUrl(site.getUrl());
-        }  catch (NoFoundEntityException e) {
-            return siteService.create(siteMapper.dtoToEntity(site));
-        }
+    public SiteEntity findSite(Site site) {
+            return siteService.findByUrl(normalizeUrl(site.getUrl()));
     }
 
     @Override
     public void processedStatus(SiteEntity siteEntity) {
         try {
-            siteService.update(siteMapper.setIndexing(siteEntity));
-        } catch (NoFoundEntityException e){
+            siteService.updateStatus(siteEntity.getId(), StatusType.INDEXING, Instant.now());
+        } catch (Exception e){
             log.warn("Ошибка изменения статуса INDEXING для сайта: {}", siteEntity.toString());
         }
 
@@ -58,10 +56,11 @@ public class DataProcessorFacadeImpl implements DataProcessorFacade {
     @Override
     public SiteEntity saveStatus(SiteEntity siteEntity) {
         try{
-            return siteService.update(siteMapper.setIndexed(siteEntity));
+            siteService.updateStatus(siteEntity.getId(), StatusType.INDEXED, Instant.now());
+            return siteService.findById(siteEntity.getId());
 
         }catch (NoFoundEntityException e){
-            log.warn("Ошибка изменения статуса INDEXED для сайта: {}", siteEntity.toString());
+            log.warn("Ошибка изменения статуса INDEXED для сайта: {}", siteEntity.getUrl());
             return siteEntity;
         }
     }
@@ -69,40 +68,33 @@ public class DataProcessorFacadeImpl implements DataProcessorFacade {
     @Override
     public SiteEntity saveStatus(SiteEntity siteEntity, String error) {
         try{
-            return siteService.update(siteMapper.setFailed(siteEntity, error));
+            siteService.updateErrorStatus(siteEntity.getId(),StatusType.FAILED, Instant.now(), error);
+            return siteService.findById(siteEntity.getId());
         } catch (NoFoundEntityException e){
-            log.warn("Ошибка изменения статуса FAILED для сайта: {}", siteEntity.toString());
+            log.warn("Ошибка изменения статуса FAILED для сайта: {}", siteEntity.getUrl());
             return siteEntity;
         }
     }
 
     @Override
-    public Page saveOrUpdatePageToDatabase(PageDto pageDto) {
+    public Page savePageOrIgnore(PageDto pageDto) {
         Page page = pageMapper.dtoToEntity(pageDto);
         try{
-            page = pageService.findByPathAndSite(page.getPath(), page.getSite());
-            return pageService.update(page);
-        } catch (NoFoundEntityException e){
             return pageService.create(page);
+        } catch (DataIntegrityViolationException e){
+            throw new PageIndexingException("индексации", "Страница уже проиндексирована", pageDto.getSite().getUrl() + pageDto.getPath());
         }
     }
 
     @Override
-    public void deleteAllBySite(Site site) {
-        try {
-            SiteEntity siteEntity = siteService.findByUrl(HtmlUtils.normalizeUrl(site.getUrl()));
-            List<Page> pages = pageService.findAllBySite(siteEntity);
-            List<Lemma> lemmas = lemmaService.findAllBySite(siteEntity);
-            lemmas.forEach(lemmaService::delete);
-            pages.forEach(p -> {
-                List<SearchIndex> indexes = indexService.findAllByPage(p);
-                indexes.forEach(indexService::delete);
-                pageService.delete(p);
-            });
-            siteService.delete(siteEntity);
-        } catch (NoFoundEntityException e){
-            log.debug("Данные сайта: {} не найдены в базе данных. Удаление не требуется", site.getUrl());
+    @Transactional
+    public SiteEntity createOrRecreateIfExistSite(Site site) {
+        String normalizedUrl = normalizeUrl(site.getUrl());
+        if(siteService.existsByUrl(normalizedUrl)){
+            log.info("Сайт: {} был проиндексирован, удаляем данные.", normalizedUrl);
+            siteService.delete(siteService.findByUrl(normalizedUrl));
         }
+        return siteService.create(siteMapper.dtoToEntity(site));
     }
 
     @Override
@@ -111,6 +103,7 @@ public class DataProcessorFacadeImpl implements DataProcessorFacade {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public boolean existsPageLinkInDatabase(String url) {
         String[] splitLink = null;
         try {
@@ -124,10 +117,62 @@ public class DataProcessorFacadeImpl implements DataProcessorFacade {
 
         try {
             SiteEntity site = siteService.findByUrl(splitLink[0]);
-            return pageService.existsByPathAndSite(splitLink[1], site);
+            return pageService.existsByPathAndSite(splitLink[1], site) ||
+                    pageService.existsByPathAndSite(normalizeUrl(splitLink[1]), site);
         } catch (NoFoundEntityException e){
-//            log.debug("Нет данных по данному Url: {}", url);
+            log.warn("Сайт для ссылки: {} не сохранен в БД.", url);
             return false;
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteNoListSitesFromDb(SitesList sitesList) {
+        List<SiteEntity> sites = siteService.findAll();
+        for(Site site : sitesList.getSites()){
+            sites.removeIf(siteEntity -> siteEntity.getUrl().equals(normalizeUrl(site.getUrl())));
+        }
+        if(!sites.isEmpty()){
+            log.info("Приступаем к удалению сайтов не входящих в список индексируемых из базы");
+            StringBuilder builder = new StringBuilder("Список сайтов к удалению: ");
+            for(SiteEntity siteEntity : sites){
+                builder.append(siteEntity.getUrl()).append(", ");
+            }
+            log.info(builder.toString());
+            siteService.deleteAllByList(sites);
+        }
+
+    }
+
+    @Override
+    @Transactional
+    public void deletePageWithDataByUrl(String url) {
+        String normalizedBaseUrl;
+        String path;
+        try{
+            normalizedBaseUrl = normalizeUrl(getBaseUrl(url));
+            path = getPath(url);
+        } catch (MalformedURLException e) {
+            throw new PageIndexingException("индексации", "Адрес ссылки введен неверно.", url);
+        }
+        try{
+            SiteEntity site = siteService.findByUrl(normalizedBaseUrl);
+            Page page = pageService.findByPathAndSite(path, site).get(0);
+            List<SearchIndex> indexes = page.getIndexes();
+            List<Lemma> lemmas = indexes.stream().map(SearchIndex::getLemma).toList();
+
+            for(Lemma lemma : lemmas){
+                if(lemma.getFrequency() > 1){
+                    lemma.setFrequency(lemma.getFrequency() - 1);
+                    lemmaService.update(lemma);
+                } else {
+                    lemmaService.delete(lemma);
+                }
+            }
+            pageService.delete(page);
+            indexService.deleteAllByList(indexes);
+        } catch (NoFoundEntityException e){
+            log.warn("Страница с ссылкой: {}, отсутствует в базе данных", url);
         }
     }
 }

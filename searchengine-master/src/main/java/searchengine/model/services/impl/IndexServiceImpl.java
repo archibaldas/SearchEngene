@@ -3,6 +3,7 @@ package searchengine.model.services.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import searchengine.core.utils.BeanUtils;
 import searchengine.exceptions.NoFoundEntityException;
 import searchengine.model.entity.Lemma;
@@ -48,11 +49,13 @@ public class IndexServiceImpl implements IndexService {
     }
 
     @Override
+    @Transactional
     public SearchIndex create(SearchIndex entity) {
         return indexRepository.save(entity);
     }
 
     @Override
+    @Transactional
     public SearchIndex update(SearchIndex entity) {
         SearchIndex updatedIndex = findById(entity.getId());
         BeanUtils.copyNotNullProperties(entity, updatedIndex);
@@ -60,7 +63,14 @@ public class IndexServiceImpl implements IndexService {
     }
 
     @Override
+    @Transactional
     public void delete(SearchIndex entity) {
         indexRepository.delete(entity);
+    }
+
+    @Override
+    @Transactional
+    public void deleteAllByList(List<SearchIndex> indexes) {
+        indexRepository.deleteAll(indexes);
     }
 }

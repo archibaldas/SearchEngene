@@ -1476,6 +1476,9 @@ var API = function(){
                     } else {
                         $this.after('<div class="API-error">' + result.error + '</div>');
                     }
+                    if ($this.is('[data-btntype="check"]')) {
+                                    shiftCheck($this);
+                    }
                 }
             }
         },
@@ -1495,6 +1498,9 @@ var API = function(){
                         $this.next('.API-error').text(result.error);
                     } else {
                         $this.after('<div class="API-error">' + result.error + '</div>');
+                    }
+                    if ($this.is('[data-btntype="check"]')) {
+                         shiftCheck($this);
                     }
                 }
             }
@@ -1648,29 +1654,48 @@ var API = function(){
                             $this.removeClass('Tabs-block_update')
                         });
                     });
-                    if (result.statistics.total.isIndexing) {
-                        var $btnIndex = $('.btn[data-send="startIndexing"]'),
-                            text = $btnIndex.find('.btn-content').text();
-                        $btnIndex.find('.btn-content').text($btnIndex.data('alttext'));
+
+                    var isIndexing = result.statistics.total.isIndexing;
+                    var $btnIndex = $('.API-startIndexing');
+
+                    if (isIndexing) {
                         $btnIndex
-                            .data('check', true)
-                            .data('altsend', 'startIndexing')
                             .data('send', 'stopIndexing')
-                            .data('alttext', text)
-                            .addClass('btn_check')
-                        $('.UpdatePageBlock').hide(0)
+                            .find('.btn-content').text('Stop indexing')
+                            .end().addClass('btn_check');
+                        $('.UpdatePageBlock').hide(0);
                     } else {
-                    var $btnIndex = $('.btn[data-send="stopIndexing"]'),
-                    text = $btnIndex.find('.btn-content').text();
-                    $btnIndex.find('.btn-content').text($btnIndex.data('alttext'));
-                    $btnIndex
-                    .data('check', false)
-                    .data('altsend', 'stopIndexing')
-                    .data('send', 'startIndexing')
-                    .data('alttext', text)
-                    .removeClass('btn_check')
-                    $('.UpdatePageBlock').show(0)
+                        $btnIndex
+                            .data('send', 'startIndexing')
+                            .find('.btn-content').text('Start indexing')
+                            .end().removeClass('btn_check');
+                        $('.UpdatePageBlock').show(0);
                     }
+//                    if (result.statistics.total.isIndexing) {
+//                        var $btnIndex = $('.API-startIndexing'),
+////                        $('.btn[data-send="startIndexing"]'),
+//                            text = $btnIndex.find('.btn-content').text();
+//                        $btnIndex.find('.btn-content').text($btnIndex.data('alttext'));
+//                        $btnIndex
+//                            .data('check', true)
+//                            .data('altsend', 'startIndexing')
+//                            .data('send', 'stopIndexing')
+//                            .data('alttext', text)
+//                            .addClass('btn_check')
+//                        $('.UpdatePageBlock').hide(0)
+//                    } else {
+//                    var $btnIndex = $('.API-startIndexing'),
+////                    $('.btn[data-send="stopIndexing"]'),
+//                    text = $btnIndex.find('.btn-content').text();
+//                    $btnIndex.find('.btn-content').text($btnIndex.data('alttext'));
+//                    $btnIndex
+//                    .data('check', false)
+//                    .data('altsend', 'stopIndexing')
+//                    .data('send', 'startIndexing')
+//                    .data('alttext', text)
+//                    .removeClass('btn_check')
+//                    $('.UpdatePageBlock').show(0)
+//                    }
     
                 } else {
                     if ($this.next('.API-error').length) {

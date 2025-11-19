@@ -30,7 +30,6 @@ public class Page {
     @Column(nullable = false, columnDefinition = "MEDIUMTEXT")
     private String content;
 
-    @OneToMany(mappedBy = "page", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "page", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private List<SearchIndex> indexes;
-
 }

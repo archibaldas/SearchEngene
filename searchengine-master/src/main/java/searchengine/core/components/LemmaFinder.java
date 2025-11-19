@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.lucene.morphology.LuceneMorphology;
 import org.springframework.stereotype.Component;
 import searchengine.core.utils.HtmlUtils;
+import searchengine.exceptions.NoFoundRussianContentException;
 
 import java.util.*;
 import java.util.regex.MatchResult;
@@ -27,8 +28,7 @@ public class LemmaFinder {
         String[] wordsArray = extractRussianWords(textFromPage);
         Map<String, Integer> lemmasMap = new HashMap<>();
         if (wordsArray.length == 0) {
-            log.warn("Пустой список слов из текста контента страницы");
-            return lemmasMap;
+            throw new NoFoundRussianContentException("На странице не найдено российских слов");
         }
         for(String word : wordsArray){
             if(word.isEmpty() || !isCorrectWordForm(word)) continue;
@@ -46,7 +46,11 @@ public class LemmaFinder {
 
     public Set<String> getLemmasSetFromSearch(String text){
         Set<String> lemmasSet = new HashSet<>();
-        for (String word : extractRussianWords(text)) {
+        String[] wordsArray = extractRussianWords(text);
+        if (wordsArray.length == 0) {
+            throw new NoFoundRussianContentException("Введены слова на нерусском языке.", "\n Пожалуйста, используйте русский язык");
+        }
+        for (String word : wordsArray) {
             List<String> wordBaseForm = luceneMorphology.getMorphInfo(word);
             if(anyWordBaseBelongToParticle(wordBaseForm))continue;
             List<String> lemmas = luceneMorphology.getNormalForms(word);

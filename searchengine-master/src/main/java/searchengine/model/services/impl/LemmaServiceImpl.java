@@ -3,6 +3,7 @@ package searchengine.model.services.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import searchengine.core.utils.BeanUtils;
 import searchengine.exceptions.NoFoundEntityException;
 import searchengine.model.entity.Lemma;
@@ -51,6 +52,7 @@ public class LemmaServiceImpl implements LemmaService {
     }
 
     @Override
+    @Transactional
     public Lemma create(Lemma entity) {
         try {
             return lemmaRepository.save(entity);
@@ -64,6 +66,7 @@ public class LemmaServiceImpl implements LemmaService {
     }
 
     @Override
+    @Transactional
     public Lemma update(Lemma entity) {
         Lemma updatedLemma = findById(entity.getId());
         BeanUtils.copyNotNullProperties(entity, updatedLemma);
@@ -71,7 +74,15 @@ public class LemmaServiceImpl implements LemmaService {
     }
 
     @Override
+    @Transactional
     public void delete(Lemma entity) {
         lemmaRepository.delete(entity);
+    }
+
+    @Override
+    @Transactional
+    public void deleteAllByList(List<Lemma> lemmas) {
+        lemmaRepository.deleteAll(lemmas);
+
     }
 }

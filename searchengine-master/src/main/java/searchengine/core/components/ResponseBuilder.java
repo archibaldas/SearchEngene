@@ -21,8 +21,6 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class ResponseBuilder {
 
-    private final MathUtils mathUtils;
-
     public List<SearchResult> buildSearchResultList(Map<Page, Float> absRelMap,
                                                      int offset,
                                                      int limit,

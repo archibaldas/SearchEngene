@@ -3,10 +3,8 @@ package searchengine.pool;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import searchengine.core.config.AppContext;
-import searchengine.core.dto.PageDto;
-import searchengine.core.dto.SearchIndexDto;
 import searchengine.core.utils.HtmlUtils;
-import searchengine.model.entity.Page;
+import searchengine.exceptions.PageIndexingException;
 import searchengine.model.entity.SiteEntity;
 
 import java.util.List;
@@ -23,30 +21,35 @@ public class PageParserTask extends RecursiveAction {
     @Override
     protected void compute() {
         if (!context.indexingRunning.get()) return;
+        if(context.linksExtractor.isVisitedLink(url)) return;
         try {
-            try {
-                HtmlUtils.timeout();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            PageDto pageDto = context.pageParser.parse(url, siteEntity);
-            Page page = context.dataProcessor.saveOrUpdatePageToDatabase(pageDto);
-            List<SearchIndexDto> indexDtos = context.pageContentExtractor.getIndexesFromPage(page);
+            HtmlUtils.timeout();
 
-            List<PageParserTask> parserTasks = pageDto.getChildLink().stream()
+            context.urlCache.add(url);
+
+            List<String> childLinks;
+            try{
+                childLinks = context.indexingPageService.indexing(url);
+            } catch (PageIndexingException e){
+                log.warn(e.getMessage());
+                return;
+            }
+
+            List<PageParserTask> parserTasks = childLinks.stream()
                     .map(link -> new PageParserTask(context, siteEntity, link))
                     .toList();
-            if (parserTasks.isEmpty()) return;
-            List<CreateIndexTask> indexTasks = indexDtos.stream()
-                    .map(searchIndexDto -> new CreateIndexTask(context, searchIndexDto))
-                    .toList();
-            invokeAll(parserTasks);
-            if (!indexTasks.isEmpty()){
-                invokeAll(indexTasks);
+
+            if (!parserTasks.isEmpty()) invokeAll(parserTasks);
+            context.dataProcessor.processedStatus(siteEntity);
+            if(context.dataProcessor.existsPageLinkInDatabase(url)){
+                context.urlCache.removeIfExists(url);
             }
         } catch (RuntimeException e) {
-            log.warn("Ошибка возникает в классе: {}", this.getClass().getName());
+            log.warn("Ошибка при обработке страницы {}: {}", url, e.getMessage());
             throw new CompletionException(e);
+        } catch (InterruptedException e ){
+            log.warn("Индексация страница {} первана пользователем", url);
+            Thread.currentThread().interrupt();
         }
     }
 }

@@ -5,7 +5,6 @@ import java.text.MessageFormat;
 
 public class ParsingException extends RuntimeException {
 
-
   public ParsingException (String operation, String url, Throwable cause){
     super(createMessage(operation, url, cause), cause);
   }

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Component;
+import searchengine.core.cache.UrlCache;
 import searchengine.core.utils.HtmlUtils;
 import searchengine.services.DataProcessorFacade;
 
@@ -18,11 +19,12 @@ import java.util.Set;
 public class LinksExtractor {
 
     private final DataProcessorFacade dataProcessorFacade;
+    private final UrlCache urlCache;
     private static final Set<String> FILE_EXTENSIONS = Set.of(
             "jpg", "jpeg", "png", "gif",
-            "webp", "pdf", "eps", "xlsx", "doc", "pptx",
+            "webp", "pdf", "eps","xls","xlsx", "doc", "pptx",
             "docx", "zip", "rar", "exe", "mp3", "mp4",
-            "avi", "mkv", "tar", "gz", "js", "php"
+            "avi", "mkv", "tar", "gz", "js", "php", "dat", "nc", "fig", "m"
     );
 
     private static final List<String> INVALID_SUBSTRINGS = List.of(
@@ -38,6 +40,7 @@ public class LinksExtractor {
                 .filter(LinksExtractor::isValidLink)
                 .filter(b -> !b.equals(baseUrl))
                 .filter(l -> !isFile(l))
+                .filter(a -> !isAuth(a))
                 .filter(e -> isChildLink(e, baseUrl))
                 .filter(p -> !isVisitedLink(p))
                 .toList();
@@ -53,7 +56,6 @@ public class LinksExtractor {
             if(!url.getProtocol().matches("https?")) return false;
             return INVALID_SUBSTRINGS.stream().noneMatch(link::contains);
         } catch (MalformedURLException e) {
-            log.warn("Ошибка формата URL: {}",  link);
             return false;
         }
     }
@@ -68,7 +70,11 @@ public class LinksExtractor {
         return FILE_EXTENSIONS.stream().anyMatch(ext -> lower.endsWith("." + ext));
     }
 
-    private boolean isVisitedLink(String url){
-        return dataProcessorFacade.existsPageLinkInDatabase(url);
+    public boolean isVisitedLink(String url){
+        return dataProcessorFacade.existsPageLinkInDatabase(url) || !urlCache.shouldProcess(url);
+    }
+
+    private static boolean isAuth(String link){
+        return link.toLowerCase().endsWith("auth");
     }
 }

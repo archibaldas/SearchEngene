@@ -27,10 +27,8 @@ public class PageServiceImpl implements PageService {
     }
 
     @Override
-    public Page findByPathAndSite(String path, SiteEntity siteEntity) throws NoFoundEntityException {
-        return pageRepository.findByPathAndSite(path,siteEntity)
-                .orElseThrow(() -> new NoFoundEntityException("поиска страницы", siteEntity.getUrl() + path,
-                        "Поиск в базе данных по сайту и расположению не дал результатов"));
+    public List<Page> findByPathAndSite(String path, SiteEntity siteEntity) throws NoFoundEntityException {
+        return pageRepository.findByPathAndSite(path,siteEntity);
     }
 
     @Override
@@ -72,5 +70,12 @@ public class PageServiceImpl implements PageService {
     @Transactional
     public void delete(Page entity) {
         pageRepository.delete(entity);
+    }
+
+    @Override
+    @Transactional
+    public void deleteAllByList(List<Page> pages) {
+        pageRepository.deleteAll(pages);
+
     }
 }

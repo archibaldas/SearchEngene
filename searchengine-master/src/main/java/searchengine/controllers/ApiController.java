@@ -5,9 +5,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import searchengine.services.IndexingService;
 import searchengine.services.SearchService;
+import searchengine.services.dto.responses.ResultResponse;
 import searchengine.services.dto.statistics.StatisticsResponse;
 import searchengine.services.StatisticsService;
 
+@SuppressWarnings("ALL")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
@@ -18,19 +20,22 @@ public class ApiController {
     private final SearchService searchService;
 
     @GetMapping("/startIndexing")
-    public ResponseEntity<Object> startIndexing(){
-        return ResponseEntity.ok(indexingService.startIndexing());
+    public ResultResponse startIndexing(){
+        indexingService.startIndexing();
+        return new ResultResponse(true);
     }
 
     @GetMapping("/stopIndexing")
-    public ResponseEntity<Object> stopIndexing(){
-        return ResponseEntity.ok(indexingService.stopIndexing());
+    public ResultResponse stopIndexing(){
+        indexingService.stopIndexing();
+        return new ResultResponse(true);
     }
 
     @PostMapping("/indexPage")
-    public ResponseEntity<Object> indexPage(
+    public ResultResponse indexPage(
             @RequestParam String url){
-        return ResponseEntity.ok(indexingService.indexPage(url));
+        indexingService.indexPage(url);
+        return new ResultResponse(true);
     }
 
     @GetMapping("/search")

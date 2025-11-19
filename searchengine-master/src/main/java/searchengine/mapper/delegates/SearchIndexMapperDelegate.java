@@ -2,6 +2,7 @@ package searchengine.mapper.delegates;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import searchengine.core.dto.LemmaDto;
 import searchengine.core.dto.SearchIndexDto;
 import searchengine.exceptions.NoFoundEntityException;
@@ -15,7 +16,6 @@ import searchengine.model.services.LemmaService;
 @RequiredArgsConstructor
 public class SearchIndexMapperDelegate implements SearchIndexMapper {
 
-//    private final DataProcessorFacade dataProcessorFacade;
     private final LemmaService lemmaService;
     private final LemmaMapper lemmaMapper;
 
@@ -28,7 +28,8 @@ public class SearchIndexMapperDelegate implements SearchIndexMapper {
         return index;
     }
 
-    public synchronized Lemma lemmaSaveOrUpdateFromDto(LemmaDto lemmaDto) {
+    @Transactional
+    public Lemma lemmaSaveOrUpdateFromDto(LemmaDto lemmaDto) {
         Lemma lemma;
         try{
             lemma = lemmaService.findByLemmaAndSite(lemmaDto.getLemma(), lemmaDto.getSite());

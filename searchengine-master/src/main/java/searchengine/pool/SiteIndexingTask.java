@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import searchengine.config.Site;
 import searchengine.core.config.AppContext;
-import searchengine.exceptions.NoFoundEntityException;
 import searchengine.model.entity.SiteEntity;
 
 import java.util.concurrent.CompletionException;
@@ -19,29 +18,36 @@ public class SiteIndexingTask extends RecursiveTask<SiteEntity> {
 
     @Override
     protected SiteEntity compute() {
-        try{
-            log.debug("Удаление данных сайта: {}", site.getUrl());
-            context.dataProcessor.deleteAllBySite(site);
-        } catch (NoFoundEntityException e){
-            log.debug(e.getMessage());
-        }
-        SiteEntity siteEntity = context.dataProcessor.findOrCreateSiteInDatabase(site);
+        SiteEntity siteEntity = context.dataProcessor.createOrRecreateIfExistSite(site);
         log.info("Сайт с адресом: {} сохранен в базе данных с индексом: {}", site.getUrl(), siteEntity.getId());
+
         PageParserTask parserTask = new PageParserTask(context, siteEntity, siteEntity.getUrl());
         try {
             log.info("Запуск индексации сайта: {}", site.getUrl());
+
             if(!context.indexingRunning.get()){
                 return context.dataProcessor.saveStatus(siteEntity, "Индексация остановлена пользователем");
             }
+
             context.dataProcessor.processedStatus(siteEntity);
+
             parserTask.fork();
             parserTask.join();
+
             log.info("Индексация сайта: {} завершена.", site.getUrl());
             return context.dataProcessor.saveStatus(siteEntity);
+
         } catch (CompletionException e) {
             Throwable originalCause = e.getCause();
             log.warn("Индексация сайта: {} завершена с ошибкой. {}", site.getUrl(), originalCause.getMessage());
             return context.dataProcessor.saveStatus(siteEntity, originalCause.getMessage());
+        } catch (Exception e) {
+            log.warn("Неожиданная ошибка при индексации сайта {}: {}", site, e.getMessage());
+            return context.dataProcessor.saveStatus(siteEntity, e.getMessage());
+        } finally {
+            if (!context.indexingRunning.get()) {
+                context.dataProcessor.saveStatus(siteEntity, "Индексация остановлена пользователем");
+            }
         }
     }
 }

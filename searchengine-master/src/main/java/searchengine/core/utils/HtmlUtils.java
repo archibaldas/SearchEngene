@@ -30,12 +30,15 @@ public class HtmlUtils {
         return parsedUrl.getProtocol() + "://" + parsedUrl.getHost() + ((hasPort ? ":" + port : ""));
     }
 
+    public static boolean equalsHosts(String url1, String url2) throws MalformedURLException{
+        URL parsedUrl1 = new URL(url1);
+        URL parsedUrl2 = new URL(url2);
+        return parsedUrl1.getHost().equals(parsedUrl2.getHost());
+    }
+
     public static String getPath(String url) throws MalformedURLException{
         URL parsedUrl = new URL(url);
         String path = parsedUrl.getPath();
-        if(path.endsWith("/") && path.length() > 1){
-            path = normalizeUrl(path);
-        }
         return path.startsWith("/") ? path : "/" + path;
     }
 

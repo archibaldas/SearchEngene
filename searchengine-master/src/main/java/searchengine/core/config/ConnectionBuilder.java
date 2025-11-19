@@ -36,7 +36,13 @@ public class ConnectionBuilder {
                 .referrer(parseConfiguration.getReferer())
                 .sslSocketFactory(sslSocketFactory)
                 .ignoreHttpErrors(true)
-                .followRedirects(true);
+                .followRedirects(true)
+                .maxBodySize(0) // без ограничения размера
+                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                .header("Accept-Language", "ru-RU,ru;q=0.9,en;q=0.8")
+                .header("Accept-Encoding", "gzip, deflate")
+                .header("Connection", "keep-alive")
+                ;
         reset();
         return connection;
     }
