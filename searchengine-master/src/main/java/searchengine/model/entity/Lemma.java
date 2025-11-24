@@ -8,8 +8,8 @@ import java.util.List;
 
 @Entity
 @Table (name = "lemma", indexes = {
-        @Index(name = "idx_lemma", columnList = "lemma")
-})
+        @Index(name = "idx_lemma", columnList = "lemma")},
+uniqueConstraints = {@UniqueConstraint(columnNames = {"site_id", "lemma"})})
 @Getter
 @Setter
 public class Lemma {

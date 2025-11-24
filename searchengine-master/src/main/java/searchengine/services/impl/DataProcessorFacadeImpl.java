@@ -98,11 +98,6 @@ public class DataProcessorFacadeImpl implements DataProcessorFacade {
     }
 
     @Override
-    public void saveIndexFromDto(SearchIndexDto searchIndexDto) {
-            indexService.create(searchIndexMapper.dtoToEntity(searchIndexDto));
-    }
-
-    @Override
     @Transactional(readOnly = true)
     public boolean existsPageLinkInDatabase(String url) {
         String[] splitLink = null;

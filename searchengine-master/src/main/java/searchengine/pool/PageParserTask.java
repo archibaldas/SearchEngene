@@ -21,12 +21,10 @@ public class PageParserTask extends RecursiveAction {
     @Override
     protected void compute() {
         if (!context.indexingRunning.get()) return;
-        if(context.linksExtractor.isVisitedLink(url)) return;
+        if(context.pageContentExtractor.isVisitedLink(url)) return;
         try {
             HtmlUtils.timeout();
-
             context.urlCache.add(url);
-
             List<String> childLinks;
             try{
                 childLinks = context.indexingPageService.indexing(url);
@@ -34,22 +32,22 @@ public class PageParserTask extends RecursiveAction {
                 log.warn(e.getMessage());
                 return;
             }
-
             List<PageParserTask> parserTasks = childLinks.stream()
                     .map(link -> new PageParserTask(context, siteEntity, link))
                     .toList();
-
             if (!parserTasks.isEmpty()) invokeAll(parserTasks);
             context.dataProcessor.processedStatus(siteEntity);
-            if(context.dataProcessor.existsPageLinkInDatabase(url)){
-                context.urlCache.removeIfExists(url);
-            }
+
         } catch (RuntimeException e) {
             log.warn("Ошибка при обработке страницы {}: {}", url, e.getMessage());
             throw new CompletionException(e);
         } catch (InterruptedException e ){
             log.warn("Индексация страница {} первана пользователем", url);
             Thread.currentThread().interrupt();
+        } finally {
+            if(context.dataProcessor.existsPageLinkInDatabase(url)){
+                context.urlCache.removeIfExists(url);
+            }
         }
     }
 }

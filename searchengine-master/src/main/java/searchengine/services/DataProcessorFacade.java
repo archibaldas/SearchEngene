@@ -15,7 +15,6 @@ public interface DataProcessorFacade {
     SiteEntity saveStatus(SiteEntity siteEntity, String error);
     Page savePageOrIgnore(PageDto pageDto);
     SiteEntity createOrRecreateIfExistSite(Site site);
-    void saveIndexFromDto(SearchIndexDto searchIndexDto);
     boolean existsPageLinkInDatabase(String url);
     void deleteNoListSitesFromDb(SitesList sitesList);
     void deletePageWithDataByUrl(String url);

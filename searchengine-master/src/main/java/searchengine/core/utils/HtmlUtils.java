@@ -7,12 +7,25 @@ import org.jsoup.nodes.Document;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 @UtilityClass
 @Slf4j
 public class HtmlUtils {
+
+    private static final List<String> INVALID_SUBSTRINGS = List.of(
+            "#", "utm_", "ad/", "?", "%20"
+    );
+
+    private static final Set<String> FILE_EXTENSIONS = Set.of(
+            "jpg", "jpeg", "png", "gif",
+            "webp", "pdf", "eps","xls","xlsx", "doc", "pptx",
+            "docx", "zip", "rar", "exe", "mp3", "mp4",
+            "avi", "mkv", "tar", "gz", "js", "php", "dat", "nc", "fig", "m"
+    );
 
     public static void timeout() throws InterruptedException {
         TimeUnit.MILLISECONDS.sleep(500 + ThreadLocalRandom.current().nextInt(500));
@@ -56,5 +69,32 @@ public class HtmlUtils {
 
     public static String getCleanTextFromContent(String content){
         return Jsoup.parse(content).text();
+    }
+
+    public static boolean isValidLink(String link) {
+        try {
+            URL url = new URL(link);
+            if(!url.getProtocol().matches("https?")) return false;
+            return INVALID_SUBSTRINGS.stream().noneMatch(link::contains);
+        } catch (MalformedURLException e) {
+            return false;
+        }
+    }
+
+
+
+
+
+    public static boolean isChildLink(String link, String baseUrl) {
+        return link.startsWith(baseUrl) && link.length() > baseUrl.length();
+    }
+
+    public static boolean isFile(String link) {
+        String lower = link.toLowerCase();
+        return FILE_EXTENSIONS.stream().anyMatch(ext -> lower.endsWith("." + ext));
+    }
+
+    public static boolean isAuth(String link){
+        return link.toLowerCase().endsWith("auth");
     }
 }

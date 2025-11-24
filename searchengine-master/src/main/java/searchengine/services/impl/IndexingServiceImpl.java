@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import searchengine.config.Site;
 import searchengine.exceptions.IndexingProcessException;
 import searchengine.services.IndexingService;
 import searchengine.config.SitesList;
@@ -11,6 +12,8 @@ import searchengine.core.config.AppContext;
 import searchengine.model.entity.SiteEntity;
 import searchengine.pool.SiteIndexingTask;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -26,7 +29,14 @@ public class IndexingServiceImpl implements IndexingService {
     @Override
     @Synchronized
     public void startIndexing(){
-        log.info("Запуск индексации сайтов: {}", sitesList.getSites().toString());
+        Instant start = Instant.now();
+        StringBuilder logSitesList = new StringBuilder();
+        String logSites;
+        for (Site site : sitesList.getSites()){
+            logSitesList.append(site.getUrl()).append(", ");
+        }
+        logSites = logSitesList.toString();
+        log.info("Запуск индексации сайтов: {}", logSites);
         if(context.indexingRunning.get()){
             throw new IndexingProcessException("уже");
         }
@@ -48,6 +58,7 @@ public class IndexingServiceImpl implements IndexingService {
                 context.indexingRunning.set(false);
                 context.cacheClean.removeFoundedUrls();
                 log.info("Индексация завершена");
+                log.info("Время индексации: [{} мин.]", Duration.between(start, Instant.now()).toMinutes());
             }
         });
     }

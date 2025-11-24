@@ -24,7 +24,6 @@ public class AppContext {
     public final LemmaFinder lemmaFinder;
     public final SearchingUtils searchingUtils;
     public final UrlCache urlCache;
-    public final LinksExtractor linksExtractor;
     public final IndexingPageService indexingPageService;
     public final CacheClean cacheClean;
 }

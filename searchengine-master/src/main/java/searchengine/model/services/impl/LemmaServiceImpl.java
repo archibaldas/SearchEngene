@@ -2,6 +2,7 @@ package searchengine.model.services.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import searchengine.core.utils.BeanUtils;
@@ -12,7 +13,12 @@ import searchengine.model.repositories.LemmaRepository;
 import searchengine.model.repositories.SiteEntityRepository;
 import searchengine.model.services.LemmaService;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -20,6 +26,7 @@ import java.util.List;
 public class LemmaServiceImpl implements LemmaService {
 
     private final SiteEntityRepository siteEntityRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     private final LemmaRepository lemmaRepository;
 
@@ -44,6 +51,21 @@ public class LemmaServiceImpl implements LemmaService {
     @Override
     public List<Lemma> findByLemma(String lemma) {
         return lemmaRepository.findByLemma(lemma);
+    }
+
+    @Override
+    @Transactional
+    public void updateLemmasForSite(SiteEntity site, Map<String, Integer> lemmasOnPage) {
+        if(lemmasOnPage.isEmpty()) return;
+
+        String sql = "INSERT INTO lemma (site_id, lemma, frequency) VALUES (?, ?, 1) " +
+                "ON DUPLICATE KEY UPDATE frequency = frequency + 1";
+
+        List<Object[]> batchArgs = new ArrayList<>();
+        for(String lemma : lemmasOnPage.keySet()){
+            batchArgs.add(new Object[]{site.getId(), lemma});
+        }
+        jdbcTemplate.batchUpdate(sql, batchArgs);
     }
 
     @Override

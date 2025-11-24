@@ -2,44 +2,32 @@ package searchengine.core.components;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Service;
+import searchengine.core.cache.UrlCache;
 import searchengine.core.dto.ExtractedDataFromPage;
-import searchengine.core.dto.LemmaDto;
-import searchengine.core.dto.SearchIndexDto;
+import searchengine.core.utils.HtmlUtils;
 import searchengine.exceptions.NoFoundRussianContentException;
 import searchengine.model.entity.Page;
+import searchengine.services.DataProcessorFacade;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+
+import static searchengine.core.utils.HtmlUtils.*;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class PageContentExtractor {
-    private final LemmaFinder lemmaFinder;
-    private final LinksExtractor linksExtractor;
 
-    public List<SearchIndexDto> getIndexesFromPage(Page page) {
-        List<SearchIndexDto> indexes = new ArrayList<>();
-        Map<String, Integer> lemmas = lemmaFinder.getLemmasMapFromPageContent(page.getContent());
-        for (Map.Entry<String, Integer> entry : lemmas.entrySet()) {
-            LemmaDto lemma = new LemmaDto();
-            lemma.setSite(page.getSite());
-            lemma.setLemma(entry.getKey());
-            SearchIndexDto index = new SearchIndexDto();
-            index.setPage(page);
-            index.setLemma(lemma);
-            index.setRank(entry.getValue().floatValue());
-            indexes.add(index);
-        }
-        return indexes;
-    }
+    private final LemmaFinder lemmaFinder;
+    private final DataProcessorFacade dataProcessorFacade;
+    private final UrlCache urlCache;
 
     public ExtractedDataFromPage extract(Page page){
         ExtractedDataFromPage data = new ExtractedDataFromPage();
         data.setPage(page);
-        data.setChildLinks(linksExtractor.extract(page.getContent(), page.getSite().getUrl(), page.getPath()));
+        data.setChildLinks(extractLinks(page.getContent(), page.getSite().getUrl(), page.getPath()));
         try {
             data.setLemmaMap(lemmaFinder.getLemmasMapFromPageContent(page.getContent()));
         } catch (NoFoundRussianContentException e){
@@ -47,5 +35,28 @@ public class PageContentExtractor {
                     page.getSite().getUrl() + page.getPath(),  " Текст ошибки: ", e.getMessage());
         }
         return data;
+    }
+
+    public List<String> extractLinks(String content, String baseUrl, String path) {
+        Document document = HtmlUtils.stringToDocument(content, baseUrl);
+
+        List<String> childLinks = document.select("a[href]")
+                .stream()
+                .map(e -> e.absUrl("href"))
+                .filter(HtmlUtils :: isValidLink)
+                .filter(b -> !b.equals(baseUrl))
+                .filter(l -> !isFile(l))
+                .filter(a -> !isAuth(a))
+                .filter(e -> isChildLink(e, baseUrl))
+                .filter(p -> !isVisitedLink(p))
+                .toList();
+        if (!childLinks.isEmpty()) {
+            log.debug("Извлечено {} дочерних ссылок к сайту [{}]", childLinks.size(),baseUrl + path);
+        }
+        return childLinks;
+    }
+
+    public boolean isVisitedLink(String url){
+        return dataProcessorFacade.existsPageLinkInDatabase(url) || !urlCache.shouldProcess(url);
     }
 }

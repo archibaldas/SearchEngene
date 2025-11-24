@@ -38,25 +38,14 @@ public class LemmaFinder {
 
             List<String> lemmas = luceneMorphology.getNormalForms(word);
             for(String lemma : lemmas){
-                lemmasMap.merge(lemma, 1 , Integer :: sum);
+                lemmasMap.merge(normalizeLemma(lemma), 1 , Integer :: sum);
             }
         }
         return lemmasMap;
     }
 
     public Set<String> getLemmasSetFromSearch(String text){
-        Set<String> lemmasSet = new HashSet<>();
-        String[] wordsArray = extractRussianWords(text);
-        if (wordsArray.length == 0) {
-            throw new NoFoundRussianContentException("Введены слова на нерусском языке.", "\n Пожалуйста, используйте русский язык");
-        }
-        for (String word : wordsArray) {
-            List<String> wordBaseForm = luceneMorphology.getMorphInfo(word);
-            if(anyWordBaseBelongToParticle(wordBaseForm))continue;
-            List<String> lemmas = luceneMorphology.getNormalForms(word);
-            lemmasSet.addAll(lemmas);
-        }
-        return lemmasSet;
+        return getLemmasMapFromPageContent(text).keySet();
     }
 
     private boolean isCorrectWordForm(String word){
@@ -80,5 +69,7 @@ public class LemmaFinder {
                 .anyMatch(wordBaseForm.toUpperCase()::contains);
     }
 
-
+    private String normalizeLemma(String lemma) {
+        return lemma.toLowerCase().replace('ё', 'е');
+    }
 }
