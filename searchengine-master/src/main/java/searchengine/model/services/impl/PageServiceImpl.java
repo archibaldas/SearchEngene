@@ -2,16 +2,31 @@ package searchengine.model.services.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.web.config.SpringDataJacksonConfiguration;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import searchengine.core.dto.PageDto;
 import searchengine.core.utils.BeanUtils;
+import searchengine.core.utils.HtmlUtils;
 import searchengine.exceptions.NoFoundEntityException;
+import searchengine.exceptions.PageIndexingException;
+import searchengine.mapper.PageMapper;
+import searchengine.model.entity.Lemma;
 import searchengine.model.entity.Page;
+import searchengine.model.entity.SearchIndex;
 import searchengine.model.entity.SiteEntity;
 import searchengine.model.repositories.PageRepository;
+import searchengine.model.services.IndexService;
+import searchengine.model.services.LemmaService;
 import searchengine.model.services.PageService;
+import searchengine.model.services.SiteService;
 
+import java.net.MalformedURLException;
 import java.util.List;
+
+import static searchengine.core.utils.HtmlUtils.*;
 
 @Service
 @RequiredArgsConstructor
@@ -19,11 +34,33 @@ import java.util.List;
 public class PageServiceImpl implements PageService {
 
     private final PageRepository pageRepository;
+    private final PageMapper pageMapper;
 
     @Override
-    public Page findById(Long id) throws NoFoundEntityException{
-        return pageRepository.findById(id).orElseThrow(() ->
-                new NoFoundEntityException("поиска страницы по ID", id, "Поиск сраницы по ID не дал результата"));
+    public Page savePageOrIgnore(PageDto pageDto) {
+        Page page = pageMapper.dtoToEntity(pageDto);
+        try{
+            return pageRepository.save(page);
+        } catch (DataIntegrityViolationException e){
+            throw new PageIndexingException("[", pageDto.getSite().getUrl(),
+                    pageDto.getPath(), "] Страница уже проиндексирована");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existsPageLinkInDatabase(String url) {
+        String[] splitLink = null;
+        try {
+            splitLink = new String[]{
+                    HtmlUtils.getBaseUrl(url),
+                    HtmlUtils.getPath(url)
+            };
+        } catch (MalformedURLException e) {
+            log.warn("Ссылка: {} указана ошибочно. Текст ошибки {}",  url, e.getMessage());
+        }
+        return pageRepository.existsBySiteUrlAndPath(splitLink[0], splitLink[1]) ||
+                pageRepository.existsBySiteUrlAndPath(splitLink[0], normalizeUrl(splitLink[1]));
     }
 
     @Override
@@ -48,34 +85,8 @@ public class PageServiceImpl implements PageService {
     }
 
     @Override
-    public boolean existsByPathAndSite(String path, SiteEntity site) {
-        return pageRepository.existsByPathAndSite(path, site);
-    }
-
-    @Override
-    @Transactional
-    public Page create(Page entity) {
-        return pageRepository.save(entity);
-    }
-
-    @Override
-    @Transactional
-    public Page update(Page entity) {
-        Page existingPage = findById(entity.getId());
-        BeanUtils.copyNotNullProperties(entity, existingPage);
-        return pageRepository.save(existingPage);
-    }
-
-    @Override
     @Transactional
     public void delete(Page entity) {
         pageRepository.delete(entity);
-    }
-
-    @Override
-    @Transactional
-    public void deleteAllByList(List<Page> pages) {
-        pageRepository.deleteAll(pages);
-
     }
 }

@@ -3,6 +3,8 @@ package searchengine.core.components;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.lucene.morphology.LuceneMorphology;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import searchengine.core.utils.HtmlUtils;
 import searchengine.exceptions.NoFoundRussianContentException;
@@ -16,27 +18,18 @@ import java.util.regex.Pattern;
 @Slf4j
 public class LemmaFinder {
 
-    private static final Pattern RUSSIAN_WORDS_PATTERN = Pattern.compile("[а-яё]+",
-            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    private final Pattern russianWordPattern;
     private final LuceneMorphology luceneMorphology;
-    private static final String WORD_TYPE_REGEX = "\\W\\w&&[^а-яА-Я\\s]";
-    private static final String[] PARTICLE_TYPES = new String[]{"МЕЖД", "ПРЕДЛ", "СОЮЗ", "МС", "МС-П" };
+    private final String wordTypeRegex;
+    private final List<String> particleTypes;
 
-
-    public Map<String, Integer> getLemmasMapFromPageContent(String pageContent){
+    public Map<String, Integer> getLemmasMapFromPageContent(String pageContent) throws NoFoundRussianContentException{
         String textFromPage = HtmlUtils.getCleanTextFromContent(pageContent);
-        String[] wordsArray = extractRussianWords(textFromPage);
         Map<String, Integer> lemmasMap = new HashMap<>();
-        if (wordsArray.length == 0) {
-            throw new NoFoundRussianContentException("На странице не найдено российских слов");
-        }
+        String[] wordsArray = getWordsArray(textFromPage);
+
         for(String word : wordsArray){
-            if(word.isEmpty() || !isCorrectWordForm(word)) continue;
-
-            List<String> wordBaseForm = luceneMorphology.getMorphInfo(word);
-            if(anyWordBaseBelongToParticle(wordBaseForm)) continue;
-
-            List<String> lemmas = luceneMorphology.getNormalForms(word);
+            List<String> lemmas = getLemmasFromWord(word);
             for(String lemma : lemmas){
                 lemmasMap.merge(normalizeLemma(lemma), 1 , Integer :: sum);
             }
@@ -44,29 +37,63 @@ public class LemmaFinder {
         return lemmasMap;
     }
 
-    public Set<String> getLemmasSetFromSearch(String text){
+    public Set<String> getLemmasSetFromSearch(String text) throws NoFoundRussianContentException{
         return getLemmasMapFromPageContent(text).keySet();
     }
 
-    private boolean isCorrectWordForm(String word){
-        return luceneMorphology.getMorphInfo(word).stream()
-                .noneMatch(info -> info.matches(WORD_TYPE_REGEX));
+    public Map<String, Set<String>> getLemmasMapWithWordFromText(String text) throws NoFoundRussianContentException{
+        String[] wordsArray = getWordsArray(text);
+        Map<String, Set<String>> lemmasMapWithWordsFromText = new HashMap<>();
+        for (String word : wordsArray) {
+            List<String> lemmas = getLemmasFromWord(word);
+
+            if (lemmas.isEmpty()) continue;
+
+            lemmas.stream().map(this::normalizeLemma)
+                    .forEach(l -> lemmasMapWithWordsFromText
+                            .computeIfAbsent(l, k -> new HashSet<>()).add(word));
+
+        }
+        return lemmasMapWithWordsFromText;
     }
 
-    private static String[] extractRussianWords(String text){
-        return RUSSIAN_WORDS_PATTERN.matcher(text.toLowerCase())
+    private List<String> getLemmasFromWord(String word){
+        if(!word.isEmpty() || isCorrectWordForm(word)){
+            List<String> wordBaseForm = luceneMorphology.getMorphInfo(word);
+            if(!anyWordBaseBelongToParticle(wordBaseForm)){
+                return luceneMorphology.getNormalForms(word);
+            }
+        }
+        return List.of();
+    }
+
+    private String[] getWordsArray(String text){
+        String[] wordsArray = extractRussianWords(text);
+        if(wordsArray.length == 0 ){
+            throw new NoFoundRussianContentException("На странице не найдено российских слов");
+        }
+        return wordsArray;
+    }
+
+    private String[] extractRussianWords(String text){
+        return russianWordPattern.matcher(text.toLowerCase())
                 .results()
                 .map(MatchResult::group)
                 .toArray(String[]::new);
     }
 
-    private static boolean anyWordBaseBelongToParticle(List<String> wordBaseForms) {
-        return wordBaseForms.stream().anyMatch(LemmaFinder::isParticle);
+    private boolean isCorrectWordForm(String word){
+        return luceneMorphology.getMorphInfo(word).stream()
+                .noneMatch(info -> info.matches(wordTypeRegex));
     }
 
-    private static boolean isParticle(String wordBaseForm){
-        return Arrays.stream(PARTICLE_TYPES)
-                .anyMatch(wordBaseForm.toUpperCase()::contains);
+
+    private boolean anyWordBaseBelongToParticle(List<String> wordBaseForms) {
+        return wordBaseForms.stream().anyMatch(this::isParticle);
+    }
+
+    private boolean isParticle(String wordBaseForm){
+        return particleTypes.stream().anyMatch(wordBaseForm.toUpperCase()::contains);
     }
 
     private String normalizeLemma(String lemma) {

@@ -7,13 +7,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.UnsupportedMimeTypeException;
 import org.springframework.stereotype.Service;
-import searchengine.core.config.ConnectionBuilder;
-import searchengine.core.config.ParseConfiguration;
+import searchengine.config.ParseConfiguration;
 import searchengine.core.dto.PageDto;
 import searchengine.exceptions.PageIndexingException;
 import searchengine.exceptions.ParsingException;
+import searchengine.exceptions.SiteIndexingException;
 import searchengine.model.entity.SiteEntity;
 import searchengine.model.repositories.PageRepository;
+import searchengine.web.services.StatisticsService;
+import searchengine.web.services.impl.StatisticsServiceImpl;
 
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
@@ -32,11 +34,14 @@ public class PageParser {
 
     private final ConnectionBuilder connectionBuilder;
     private final ParseConfiguration parseConfiguration;
-    private final LinksExtractor linksExtractor;
     private final SSLSocketFactory sslSocketFactory;
     private final int[] statusCodes = new int[]{403, 500};
 
     private final PageRepository pageRepository;
+
+    private final StatisticsService statisticsService;
+
+    private final StatisticsServiceImpl statisticsServiceImpl;
 
     private int attempt = 0;
 
@@ -44,19 +49,13 @@ public class PageParser {
         PageDto pageDto = parseWithAttempts(url, site, 0, false);
         if(normalizeUrl(url).equals(normalizeUrl(site.getUrl())) && pageDto.getCode() >= 400) {
             log.warn("Ошибка стартовой страницы: {}", getMessageByCode(pageDto.getCode()));
-            throw new PageIndexingException("индексации", "Главная страница недоступна.",getMessageByCode(pageDto.getCode()));
+            throw new SiteIndexingException("Главная страница сайта: ", site.getUrl(), " недоступна. ",getMessageByCode(pageDto.getCode()));
         }
         return pageDto;
     }
 
     private PageDto parseWithAttempts(String url, SiteEntity site, int attempt, boolean useChromeAgent)
-            throws ParsingException, PageIndexingException{
-        try {
-            timeout();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new ParsingException("таймаута", url, e);
-        }
+            throws ParsingException {
 
         log.debug("Установка соединения со страницей по адресу: {}", url);
         PageDto pageDto = createPageDto(url, site);
@@ -66,41 +65,36 @@ public class PageParser {
         try {
             response = getResponse(url, useChromeAgent);
         } catch (ParsingException e){
-
-            pageDto.setCode(404);
+            pageDto.setCode(500);
             return createErrorPageDto(pageDto);
         }
-
-        if (response == null) {
-            pageDto.setCode(400);
-            return createErrorPageDto(pageDto);
-        }
-
-
-
         int statusCode = response.statusCode();
 
         pageDto.setCode(statusCode);
 
         if (isStatusCodeToNextAttempt(statusCode) && attempt < 3) {
-            boolean nextUseChromeAgent = useChromeAgent || statusCode == 403;
+            boolean nextUseChromeAgent = useChromeAgent ||
+//                    Arrays.stream(statusCodes).anyMatch(sc -> sc == statusCode)
+                    statusCode >= 400
+                    ;
 
-            log.warn("Получен {}, для Url: {}. Повторная попытка: {}. UseChromeAgent: {}",
-                    statusCode, url, attempt + 1, nextUseChromeAgent);
+            log.debug("{} для Url: {}. Повторная попытка: {}. UseChromeAgent: {}",
+                    getMessageByCode(statusCode), url, attempt + 1, nextUseChromeAgent);
 
-            if (statusCode == 500) {
+            if (statusCode >= 500) {
                 try {
-                    Thread.sleep(3000);
+                    Thread.sleep(10000);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
+//                nextUseChromeAgent = true;
             }
 
             return parseWithAttempts(url, site, attempt + 1, nextUseChromeAgent);
         }
 
         if (statusCode >= 400) {
-            log.debug("Статус страницы:{} - {} : {}",
+            log.warn("Страница [{}] сохранена со статусом: {} : {}",
                     pageDto.getSite().getUrl() + pageDto.getPath(),
                     statusCode, response.statusMessage());
             return createErrorPageDto(pageDto);
@@ -124,33 +118,43 @@ public class PageParser {
         try{
             pageDto.setPath(getPath(url));
         } catch (MalformedURLException e) {
-            throw new ParsingException( "валидации URL", url,  e);
+            throw new ParsingException("Ошибка валидации ссылки: [", url, "] Ошибка: ", e.getMessage());
         }
         return pageDto;
     }
 
     private Connection.Response getResponse(String url, boolean useChromeAgent) throws ParsingException {
         try {
+            Connection.Response response;
             if(useChromeAgent){
-                return connectionBuilder
+                response = connectionBuilder
                         .withChromeAgent()
+                        .build(url)
+                        .execute();
+            } else {
+                response = connectionBuilder
+                        .withCustomUserAgent(parseConfiguration.getUserAgent())
                         .build(url)
                         .execute();
             }
 
-            return connectionBuilder
-                    .withCustomUserAgent(parseConfiguration.getUserAgent())
-                    .build(url)
-                    .execute();
+            if(response.statusCode() >= 400){
+                log.debug("Ошибка {} для Url: {}", response.statusCode(), url);
+                log.debug("Заголовок ответа: {}", response.headers());
+                log.debug("Status message: {}", response.statusMessage());
+            }
+
+            return response;
+
         } catch (UnsupportedMimeTypeException ex){
-            log.warn("Ссылка: [{}] возрващает неверный тип данных: {}", url, ex.getMessage());
-            return null;
+            log.warn("Ссылка: [{}] возвращает неверный тип данных: {}", url, ex.getMessage());
+            throw new ParsingException("Ссылка: [", url, "] возвращает неверный тип данных. Ошибка: ", ex.getMessage());
         } catch (UnknownHostException uex){
             log.warn("Ошибка обработки ссылки: [{}] Неизвестный хост: {}", url, uex.getMessage());
-            return null;
+            throw new ParsingException("Неизвестный хост ссылки: [", url, "] Ошибка: ", uex.getMessage());
         } catch (IOException e) {
             log.warn("Ошибка подключения к {}: {}", url, e.getMessage());
-            throw new ParsingException("подключения", url, e);
+            throw new ParsingException("Ошибка подключения к ссылке: [", url, "] Ошибка: ", e.getMessage());
         }
     }
 
@@ -165,7 +169,7 @@ public class PageParser {
             pageDto.setContent(content);
             return pageDto;
         } catch (IOException e) {
-            throw new ParsingException( "парсинг контeнта", pageDto.getSite().getUrl() + pageDto.getPath(), e);
+            throw new ParsingException( "Ошибка парсинга контента страницы: [", pageDto.getSite().getUrl(), pageDto.getPath(),"] Ошибка: ", e);
         }
     }
 }

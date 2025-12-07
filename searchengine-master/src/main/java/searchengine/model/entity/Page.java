@@ -7,7 +7,11 @@ import lombok.Setter;
 import java.util.List;
 
 @Entity
-@Table(name = "page", indexes = @Index(name = "idx_path", columnList = "path"))
+@Table(name = "page", indexes = {
+        @Index(name = "idx_page_path", columnList = "path"),
+        @Index(name = "idx_page_site", columnList = "site_id"),
+        @Index(name = "index_page_site_path", columnList = "site_id,path")
+})
 @Getter
 @Setter
 public class Page {

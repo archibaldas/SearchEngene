@@ -5,7 +5,11 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "`index`")
+@Table(name = "`index`", indexes = {
+        @Index(name = "idx_index_lemma", columnList = "lemma_id"),
+        @Index(name = "idx_index_page", columnList = "page_id"),
+        @Index(name = "idx_index_lemma_page", columnList = "lemma_id,page_id")
+} )
 @Getter
 @Setter
 public class SearchIndex {

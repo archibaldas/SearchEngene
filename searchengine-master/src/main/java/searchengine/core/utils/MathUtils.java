@@ -10,7 +10,9 @@ import java.util.Map;
 @Slf4j
 public class MathUtils {
 
-    public static double getTrashHold(long pageCount){
+    private static final float TO_PERCENTAGE = 100.0f;
+
+    public static double getThreshold(long pageCount){
         return pageCount * 0.8;
     }
 
@@ -18,5 +20,9 @@ public class MathUtils {
         return absRelMap.values().stream()
                 .max(Float::compare)
                 .orElse(1f);
+    }
+
+    public static float getRankForPage(Integer lemmasCount, Integer allLemmasCount){
+        return Math.round(((float) lemmasCount / allLemmasCount) * 10000) / TO_PERCENTAGE;
     }
 }

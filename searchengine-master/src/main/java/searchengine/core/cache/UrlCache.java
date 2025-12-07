@@ -22,4 +22,8 @@ public class UrlCache {
     public void removeIfExists(String url){
         cache.remove(url);
     }
+
+    public void clear(){
+        cache.clear();
+    }
 }

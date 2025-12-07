@@ -81,10 +81,6 @@ public class HtmlUtils {
         }
     }
 
-
-
-
-
     public static boolean isChildLink(String link, String baseUrl) {
         return link.startsWith(baseUrl) && link.length() > baseUrl.length();
     }

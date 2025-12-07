@@ -1,15 +1,17 @@
 package searchengine.mapper;
 
-import org.springframework.stereotype.Component;
+import org.mapstruct.DecoratedWith;
+import org.mapstruct.Mapper;
+import org.mapstruct.ReportingPolicy;
 import searchengine.config.Site;
+import searchengine.mapper.delegates.SiteMapperDelegate;
 import searchengine.model.entity.SiteEntity;
-import searchengine.services.dto.statistics.DetailedStatisticsItem;
+import searchengine.web.services.dto.statistics.DetailedStatisticsItem;
 
-@Component
+@DecoratedWith(SiteMapperDelegate.class)
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface SiteMapper {
     SiteEntity dtoToEntity(Site site);
     DetailedStatisticsItem entityToDetailedStatisticResult(SiteEntity siteEntity);
-    SiteEntity setIndexing(SiteEntity siteEntity);
-    SiteEntity setIndexed(SiteEntity siteEntity);
-    SiteEntity setFailed(SiteEntity siteEntity, String errorText);
+    DetailedStatisticsItem noIndexedDataToDetailed(Site site);
 }

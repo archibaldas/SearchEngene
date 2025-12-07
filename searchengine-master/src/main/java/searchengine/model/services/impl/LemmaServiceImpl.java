@@ -9,6 +9,8 @@ import searchengine.core.utils.BeanUtils;
 import searchengine.exceptions.NoFoundEntityException;
 import searchengine.model.entity.Lemma;
 import searchengine.model.entity.SiteEntity;
+import searchengine.model.projection.GlobalLemmaFrequencyProjection;
+import searchengine.model.projection.LemmaFrequencyProjection;
 import searchengine.model.repositories.LemmaRepository;
 import searchengine.model.repositories.SiteEntityRepository;
 import searchengine.model.services.LemmaService;
@@ -25,9 +27,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class LemmaServiceImpl implements LemmaService {
 
-    private final SiteEntityRepository siteEntityRepository;
     private final JdbcTemplate jdbcTemplate;
-
     private final LemmaRepository lemmaRepository;
 
     @Override
@@ -38,14 +38,14 @@ public class LemmaServiceImpl implements LemmaService {
     @Override
     public Lemma findById(Long id) {
         return lemmaRepository.findById(id)
-                .orElseThrow(() -> new NoFoundEntityException("поиска леммы", id, "Лемма по ID не найдена."));
+                .orElseThrow(() -> new NoFoundEntityException("Лемма с", id, " не найдена."));
     }
 
     @Override
     public Lemma findByLemmaAndSite(String lemma, SiteEntity site) {
         return lemmaRepository.findByLemmaAndSite(lemma, site)
-                .orElseThrow(() -> new NoFoundEntityException("поиска леммы: " + lemma,
-                        site.getUrl(), "Лемма не найдена в базе данных"));
+                .orElseThrow(() -> new NoFoundEntityException("Лемма ", lemma, " к сайту: "
+                        , site.getUrl(), " не найдена в базе данных"));
     }
 
     @Override
@@ -75,20 +75,6 @@ public class LemmaServiceImpl implements LemmaService {
 
     @Override
     @Transactional
-    public Lemma create(Lemma entity) {
-        try {
-            return lemmaRepository.save(entity);
-        } catch (Exception e) {
-            log.debug(e.getMessage());
-            Lemma lemma = findByLemmaAndSite(entity.getLemma(), entity.getSite());
-            BeanUtils.copyNotNullProperties(entity, lemma);
-            lemma.setFrequency(lemma.getFrequency() + 1);
-            return lemmaRepository.save(lemma);
-        }
-    }
-
-    @Override
-    @Transactional
     public Lemma update(Lemma entity) {
         Lemma updatedLemma = findById(entity.getId());
         BeanUtils.copyNotNullProperties(entity, updatedLemma);
@@ -102,9 +88,28 @@ public class LemmaServiceImpl implements LemmaService {
     }
 
     @Override
-    @Transactional
-    public void deleteAllByList(List<Lemma> lemmas) {
-        lemmaRepository.deleteAll(lemmas);
+    public List<Lemma> findBySiteAndLemmaIn(SiteEntity site, Set<String> lemmaSet) {
+        return lemmaRepository.findBySiteAndLemmaIn(site, lemmaSet);
+    }
 
+    @Override
+    public Map<String, Integer> getFrequenciesBySiteAndLemmas(SiteEntity site, List<String> lemmas) {
+        List<LemmaFrequencyProjection> results = lemmaRepository.findFrequenciesBySiteAndLemmas(site, lemmas);
+        return results.stream()
+                .collect(Collectors.toMap(
+                        LemmaFrequencyProjection::getLemma,
+                        LemmaFrequencyProjection::getFrequency
+                ));
+    }
+
+    @Override
+    public Map<String, Integer> getGlobalFrequenciesByLemmas(List<String> lemmas) {
+        List<GlobalLemmaFrequencyProjection> results = lemmaRepository.findGlobalFrequenciesByLemmas(lemmas);
+
+        return results.stream()
+                .collect(Collectors.toMap(
+                        GlobalLemmaFrequencyProjection::getLemma,
+                        projection -> projection.getTotalFrequency().intValue()
+                ));
     }
 }

@@ -1,12 +1,10 @@
 package searchengine.mapper.delegates;
 
-import org.springframework.stereotype.Component;
 import searchengine.core.dto.PageDto;
 import searchengine.mapper.PageMapper;
 import searchengine.model.entity.Page;
 
-@Component
-public class PageMapperDelegate implements PageMapper {
+public abstract class PageMapperDelegate implements PageMapper {
 
     @Override
     public Page dtoToEntity(PageDto dto) {

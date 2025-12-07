@@ -1,13 +1,9 @@
 package searchengine.exceptions;
 
-import java.text.MessageFormat;
+import static searchengine.core.utils.MessageCreator.createMessage;
 
 public class NoFoundEntityException extends RuntimeException {
   public NoFoundEntityException(Object ... args) {
     super(createMessage(args));
-  }
-
-  private static String createMessage(Object[] args) {
-    return MessageFormat.format("Ошибка {0} для {1}: {2}", args);
   }
 }

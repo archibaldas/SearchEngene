@@ -27,12 +27,16 @@ app:
     timeout: 300000
 
   lemma-finder:
-   particle-types:
-      - МЕЖД
-      - ПРЕДЛ
-      - СОЮЗ
-      - МС
-      - МС-П
+    particle-types:
+      - "МЕЖД"
+      - "ПРЕДЛ"
+      - "СОЮЗ"
+      - "МС"
+      - "МС-П"
+
+
+  cache:
+    remove_time: 5000
 
 indexing-settings:
   sites:
@@ -44,6 +48,12 @@ indexing-settings:
       name: NikoArt
     - url: https://www.svetlovka.ru
       name: Svetlovka
+    - url: https://dombulgakova.ru/
+      name: DomBulgakova
+    - url: https://et-cetera.ru/mobile/
+      name: ET-CETERA
+    - url: https://www.lutherancathedral.ru/
+      name: LutheranCathedral
 
 logging:
   level:
