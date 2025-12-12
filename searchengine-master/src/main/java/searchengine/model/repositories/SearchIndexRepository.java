@@ -12,7 +12,6 @@ import searchengine.model.projection.GlobalSearchProjection;
 import searchengine.model.projection.PageRankProjection;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface SearchIndexRepository extends JpaRepository<SearchIndex, Long> {

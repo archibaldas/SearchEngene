@@ -3,8 +3,6 @@ package searchengine.core.components;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.lucene.morphology.LuceneMorphology;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import searchengine.core.utils.HtmlUtils;
 import searchengine.exceptions.NoFoundRussianContentException;

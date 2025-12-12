@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static searchengine.core.utils.HtmlUtils.*;
+import static searchengine.core.utils.SiteStatusUtils.setFailedStatus;
 import static searchengine.core.utils.SiteStatusUtils.setIndexingProcessStatus;
 
 @Service
@@ -46,7 +47,13 @@ public class IndexingPageServiceImpl implements IndexingPageService {
         SiteEntity siteEntity = siteService.getSiteEntityByLink(link);
         siteService.updateStatus(setIndexingProcessStatus(siteEntity));
 
-        PageDto pageDto = pageParser.parse(link, siteEntity);
+        PageDto pageDto;
+        try {
+            pageDto = pageParser.parse(link, siteEntity);
+        } catch (SiteIndexingException e) {
+            siteService.updateStatus(setFailedStatus(siteEntity, e.getMessage()));
+            throw new SiteIndexingException(e.getMessage());
+        }
         Page page = pageService.savePageOrIgnore(pageDto);
         if (page.getCode() >= 400 || page.getContent().isEmpty()) {
             log.debug("Пропускаем извлечение дочерних ссылок для страницы: {}", link);

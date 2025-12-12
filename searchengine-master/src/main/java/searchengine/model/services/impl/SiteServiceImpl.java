@@ -49,7 +49,7 @@ public class SiteServiceImpl implements SiteService {
             throw new PageIndexingException(link, "Адрес ссылки введен неверно.");
         }
         if(site == null) {
-            throw new PageIndexingException(link , "Сайт по ссылке отсутсвует в списке индексируемых сайтов", link);
+            throw new PageIndexingException(link , "Сайт по ссылке отсутствует в списке индексируемых сайтов");
         }
         try {
             return findByUrl(normalizeUrl(site.getUrl()));

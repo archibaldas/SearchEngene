@@ -30,6 +30,7 @@ public abstract class SiteMapperDelegate implements SiteMapper {
         item.setUrl(siteEntity.getUrl());
         item.setStatus(siteEntity.getStatus().name());
         item.setStatusTime(siteEntity.getStatusTime().toEpochMilli());
+        item.setError(siteEntity.getLastError());
         return item;
     }
 
@@ -38,6 +39,9 @@ public abstract class SiteMapperDelegate implements SiteMapper {
         DetailedStatisticsItem item = new DetailedStatisticsItem();
         item.setUrl(normalizeUrl(site.getUrl()));
         item.setName(site.getName());
+        item.setStatus("");
+        item.setError("");
+        item.setStatusTime(0L);
         return item;
     }
 }

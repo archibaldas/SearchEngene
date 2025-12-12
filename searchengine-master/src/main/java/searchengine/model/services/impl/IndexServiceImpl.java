@@ -10,7 +10,6 @@ import searchengine.model.entity.Lemma;
 import searchengine.model.entity.Page;
 import searchengine.model.entity.SearchIndex;
 import searchengine.model.entity.SiteEntity;
-import searchengine.model.projection.GlobalLemmaFrequencyProjection;
 import searchengine.model.projection.GlobalSearchProjection;
 import searchengine.model.projection.PageRankProjection;
 import searchengine.model.repositories.SearchIndexRepository;

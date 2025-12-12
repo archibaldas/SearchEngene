@@ -10,6 +10,7 @@ import searchengine.model.services.SiteService;
 import searchengine.web.services.IndexingPageService;
 
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.RecursiveAction;
 import java.util.concurrent.RecursiveTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -17,7 +18,7 @@ import static searchengine.core.utils.SiteStatusUtils.*;
 
 @RequiredArgsConstructor
 @Slf4j
-public class SiteIndexingTask extends RecursiveTask<SiteEntity> {
+public class SiteIndexingTask extends RecursiveAction {
     private final AtomicBoolean indexingRunning;
     private final IndexingPageService indexingPageService;
     private final PageContentExtractor pageContentExtractor;
@@ -26,7 +27,7 @@ public class SiteIndexingTask extends RecursiveTask<SiteEntity> {
     private final Site site;
 
     @Override
-    protected SiteEntity compute() {
+    protected void compute() {
         SiteEntity siteEntity = siteService.create(site);
         log.info("Сайт с адресом: {} сохранен в базе данных с индексом: {}", site.getUrl(), siteEntity.getId());
 
@@ -41,7 +42,7 @@ public class SiteIndexingTask extends RecursiveTask<SiteEntity> {
             log.info("Запуск индексации сайта: {}", site.getUrl());
 
             if(!indexingRunning.get()){
-                return siteService.updateStatus(setFailedStatus(siteEntity, STOP_INDEXING));
+                siteService.updateStatus(setFailedStatus(siteEntity, STOP_INDEXING));
             }
             siteService.updateStatus(setIndexingProcessStatus(siteEntity));
 
@@ -49,15 +50,14 @@ public class SiteIndexingTask extends RecursiveTask<SiteEntity> {
             parserTask.join();
 
             log.info("Индексация сайта: {} завершена.", site.getUrl());
-            return siteService.updateStatus(setIndexedStatus(siteEntity));
+            siteService.updateStatus(setIndexedStatus(siteEntity));
 
         } catch (CompletionException e) {
             Throwable originalCause = e.getCause();
             log.warn("Индексация сайта: {} завершена с ошибкой. {}", site.getUrl(), originalCause.getMessage());
-            return siteService.updateStatus(setFailedStatus(siteEntity, originalCause.getMessage()));
         } catch (Exception e) {
             log.warn("Неожиданная ошибка при индексации сайта {}: {}", site, e.getMessage());
-            return siteService.updateStatus(setFailedStatus(siteEntity, e.getMessage()));
+            siteService.updateStatus(setFailedStatus(siteEntity, e.getMessage()));
         } finally {
             if (!indexingRunning.get()) {
                 siteService.updateStatus(setFailedStatus(siteEntity, STOP_INDEXING));

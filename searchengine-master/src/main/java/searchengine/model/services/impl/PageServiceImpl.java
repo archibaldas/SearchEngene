@@ -2,26 +2,18 @@ package searchengine.model.services.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.web.config.SpringDataJacksonConfiguration;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import searchengine.core.dto.PageDto;
-import searchengine.core.utils.BeanUtils;
 import searchengine.core.utils.HtmlUtils;
 import searchengine.exceptions.NoFoundEntityException;
 import searchengine.exceptions.PageIndexingException;
 import searchengine.mapper.PageMapper;
-import searchengine.model.entity.Lemma;
 import searchengine.model.entity.Page;
-import searchengine.model.entity.SearchIndex;
 import searchengine.model.entity.SiteEntity;
 import searchengine.model.repositories.PageRepository;
-import searchengine.model.services.IndexService;
-import searchengine.model.services.LemmaService;
 import searchengine.model.services.PageService;
-import searchengine.model.services.SiteService;
 
 import java.net.MalformedURLException;
 import java.util.List;
@@ -65,7 +57,9 @@ public class PageServiceImpl implements PageService {
 
     @Override
     public List<Page> findByPathAndSite(String path, SiteEntity siteEntity) throws NoFoundEntityException {
-        return pageRepository.findByPathAndSite(path,siteEntity);
+        List<Page> pages = pageRepository.findByPathAndSite(path,siteEntity);
+        if (pages.isEmpty()) throw new NoFoundEntityException("Страница c адресом:", siteEntity.getUrl() + path, "не сохранена в базе данных." );
+        return pages;
     }
 
     @Override

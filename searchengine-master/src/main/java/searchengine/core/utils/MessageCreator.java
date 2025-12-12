@@ -16,8 +16,9 @@ public class MessageCreator {
         StringBuilder pattern = new StringBuilder();
         int argsSize = Math.toIntExact(Arrays.stream(args).count());
         for (int i = 0; i < argsSize; i++) {
-            pattern.append("{").append(i).append("}");
+            pattern.append("{").append(i).append("} ");
         }
+        pattern.setLength(pattern.length() - 1);
         return pattern.toString();
     }
 }

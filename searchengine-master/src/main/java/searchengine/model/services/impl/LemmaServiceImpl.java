@@ -12,14 +12,12 @@ import searchengine.model.entity.SiteEntity;
 import searchengine.model.projection.GlobalLemmaFrequencyProjection;
 import searchengine.model.projection.LemmaFrequencyProjection;
 import searchengine.model.repositories.LemmaRepository;
-import searchengine.model.repositories.SiteEntityRepository;
 import searchengine.model.services.LemmaService;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service

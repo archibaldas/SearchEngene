@@ -8,10 +8,12 @@ import searchengine.config.Site;
 import searchengine.core.cache.CacheClean;
 import searchengine.core.cache.UrlCache;
 import searchengine.core.components.PageContentExtractor;
+import searchengine.core.utils.HtmlUtils;
 import searchengine.exceptions.IndexingProcessException;
 import searchengine.exceptions.PageIndexingException;
 import searchengine.exceptions.SiteIndexingException;
 import searchengine.model.entity.StatusType;
+import searchengine.model.repositories.SiteEntityRepository;
 import searchengine.model.services.CleanUpService;
 import searchengine.model.services.SiteService;
 import searchengine.web.services.IndexingPageService;
@@ -26,6 +28,7 @@ import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static searchengine.core.utils.HtmlUtils.getBaseUrl;
 import static searchengine.core.utils.SiteStatusUtils.STOP_INDEXING;
 import static searchengine.core.utils.SiteStatusUtils.setFailedStatus;
 
@@ -42,6 +45,9 @@ public class IndexingServiceImpl implements IndexingService {
     private final CleanUpService cleanUpService;
     private final SitesList sitesList;
     private final ForkJoinPool forkJoinPool;
+
+    private final SiteEntityRepository siteEntityRepository;
+
     private volatile Future<?> indexingFuture;
 
     @Override
@@ -115,7 +121,14 @@ public class IndexingServiceImpl implements IndexingService {
     @Override
     public void indexPage(String url) throws PageIndexingException, SiteIndexingException {
         log.debug("Индексация страницы {}", url);
-            indexingPageService.deletePageWithDataByUrl(url);
+
+        if(url.isBlank()) throw new PageIndexingException("URL не может быть пустым");
+
+        indexingPageService.deletePageWithDataByUrl(url);
+        try {
             indexingPageService.indexing(url);
+        } catch (SiteIndexingException e) {
+            throw new PageIndexingException(e.getMessage());
+        }
     }
 }

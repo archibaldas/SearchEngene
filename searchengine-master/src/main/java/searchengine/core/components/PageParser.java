@@ -14,6 +14,7 @@ import searchengine.exceptions.ParsingException;
 import searchengine.exceptions.SiteIndexingException;
 import searchengine.model.entity.SiteEntity;
 import searchengine.model.repositories.PageRepository;
+import searchengine.model.services.SiteService;
 import searchengine.web.services.StatisticsService;
 import searchengine.web.services.impl.StatisticsServiceImpl;
 
