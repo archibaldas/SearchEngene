@@ -29,26 +29,9 @@ public class LemmaServiceImpl implements LemmaService {
     private final LemmaRepository lemmaRepository;
 
     @Override
-    public List<Lemma> findAllBySite(SiteEntity siteEntity) {
-        return lemmaRepository.findAllBySite(siteEntity);
-    }
-
-    @Override
     public Lemma findById(Long id) {
         return lemmaRepository.findById(id)
                 .orElseThrow(() -> new NoFoundEntityException("Лемма с", id, " не найдена."));
-    }
-
-    @Override
-    public Lemma findByLemmaAndSite(String lemma, SiteEntity site) {
-        return lemmaRepository.findByLemmaAndSite(lemma, site)
-                .orElseThrow(() -> new NoFoundEntityException("Лемма ", lemma, " к сайту: "
-                        , site.getUrl(), " не найдена в базе данных"));
-    }
-
-    @Override
-    public List<Lemma> findByLemma(String lemma) {
-        return lemmaRepository.findByLemma(lemma);
     }
 
     @Override
@@ -56,8 +39,11 @@ public class LemmaServiceImpl implements LemmaService {
     public void updateLemmasForSite(SiteEntity site, Map<String, Integer> lemmasOnPage) {
         if(lemmasOnPage.isEmpty()) return;
 
-        String sql = "INSERT INTO lemma (site_id, lemma, frequency) VALUES (?, ?, 1) " +
-                "ON DUPLICATE KEY UPDATE frequency = frequency + 1";
+        String sql = """
+                INSERT INTO lemma (site_id, lemma, frequency) 
+                VALUES (?, ?, 1) ON CONFLICT (site_id, lemma) 
+                DO UPDATE SET frequency = lemma.frequency + 1
+                """;
 
         List<Object[]> batchArgs = new ArrayList<>();
         for(String lemma : lemmasOnPage.keySet()){
@@ -73,10 +59,10 @@ public class LemmaServiceImpl implements LemmaService {
 
     @Override
     @Transactional
-    public Lemma update(Lemma entity) {
+    public void update(Lemma entity) {
         Lemma updatedLemma = findById(entity.getId());
         BeanUtils.copyNotNullProperties(entity, updatedLemma);
-        return lemmaRepository.save(updatedLemma);
+        lemmaRepository.save(updatedLemma);
     }
 
     @Override

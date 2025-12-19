@@ -1,21 +1,27 @@
-# example values
 server:
   port: 8080
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/search_engine_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
-    username: user
-    password: 12345
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:postgresql://localhost:5432/search_engine_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
         format_sql: false
-        dialect: org.hibernate.dialect.MySQL8Dialect
-        use_float_for_double: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_shema: public
+        jdbc:
+          lob:
+            non_contextual_creation: true
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/changelog-master.yaml
+    drop-first: false
 app:
   connection:
     userAgent: MyLearningSearchingBot/1.2 (archibaldas.shtml.com)

@@ -11,7 +11,6 @@ import searchengine.web.services.IndexingPageService;
 
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.RecursiveAction;
-import java.util.concurrent.RecursiveTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static searchengine.core.utils.SiteStatusUtils.*;

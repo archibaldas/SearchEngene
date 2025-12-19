@@ -14,7 +14,6 @@ import searchengine.exceptions.ParsingException;
 import searchengine.exceptions.SiteIndexingException;
 import searchengine.model.entity.SiteEntity;
 import searchengine.model.repositories.PageRepository;
-import searchengine.model.services.SiteService;
 import searchengine.web.services.StatisticsService;
 import searchengine.web.services.impl.StatisticsServiceImpl;
 
@@ -49,7 +48,7 @@ public class PageParser {
     public PageDto parse(String url, SiteEntity site) throws ParsingException, PageIndexingException {
         PageDto pageDto = parseWithAttempts(url, site, 0, false);
         if(normalizeUrl(url).equals(normalizeUrl(site.getUrl())) && pageDto.getCode() >= 400) {
-            log.warn("Ошибка стартовой страницы: {}", getMessageByCode(pageDto.getCode()));
+            log.debug("Ошибка стартовой страницы: {}", getMessageByCode(pageDto.getCode()));
             throw new SiteIndexingException("Главная страница сайта: ", site.getUrl(), " недоступна. ",getMessageByCode(pageDto.getCode()));
         }
         return pageDto;
@@ -95,7 +94,7 @@ public class PageParser {
         }
 
         if (statusCode >= 400) {
-            log.warn("Страница [{}] сохранена со статусом: {} : {}",
+            log.debug("Страница [{}] сохранена со статусом: {} : {}",
                     pageDto.getSite().getUrl() + pageDto.getPath(),
                     statusCode, response.statusMessage());
             return createErrorPageDto(pageDto);
@@ -154,7 +153,7 @@ public class PageParser {
             log.warn("Ошибка обработки ссылки: [{}] Неизвестный хост: {}", url, uex.getMessage());
             throw new ParsingException("Неизвестный хост ссылки: [", url, "] Ошибка: ", uex.getMessage());
         } catch (IOException e) {
-            log.warn("Ошибка подключения к {}: {}", url, e.getMessage());
+            log.debug("Ошибка подключения к {}: {}", url, e.getMessage());
             throw new ParsingException("Ошибка подключения к ссылке: [", url, "] Ошибка: ", e.getMessage());
         }
     }
@@ -170,7 +169,7 @@ public class PageParser {
             pageDto.setContent(content);
             return pageDto;
         } catch (IOException e) {
-            throw new ParsingException( "Ошибка парсинга контента страницы: [", pageDto.getSite().getUrl(), pageDto.getPath(),"] Ошибка: ", e);
+            throw new ParsingException( "Ошибка парсинга контента страницы: [", pageDto.getSite().getUrl() + pageDto.getPath(),"] Ошибка: ", e);
         }
     }
 }

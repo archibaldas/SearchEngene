@@ -3,6 +3,7 @@ package searchengine.core.components;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import searchengine.exceptions.SearchingException;
 import searchengine.model.entity.Page;
 import searchengine.model.entity.SiteEntity;
 import searchengine.model.services.IndexService;
@@ -11,6 +12,7 @@ import searchengine.model.services.PageService;
 import searchengine.model.services.SiteService;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static searchengine.core.utils.HtmlUtils.normalizeUrl;
 import static searchengine.core.utils.MathUtils.getThreshold;
@@ -38,10 +40,9 @@ public class SearchingUtils {
     }
 
     private List<String> getSortedLemmas(Set<String> lemmasString){
-        Map<String, Integer> lemmaTotalFrequency = site == null
-                ? lemmaService.getGlobalFrequenciesByLemmas(lemmasString.stream().toList())
-                : lemmaService.getFrequenciesBySiteAndLemmas(site, lemmasString.stream().toList());
+        Map<String, Integer> lemmaTotalFrequency = getLemmaTotalFrequenceMap(lemmasString);
         calculateThreshold();
+        if (lemmaTotalFrequency.isEmpty()) throw new SearchingException("Запрос не корректен, или вы используете слова не из морфологии русского языка");
         return lemmasString.stream()
                 .filter(lemma -> lemmaTotalFrequency.get(lemma) < threshold)
                 .sorted(Comparator.comparingInt(lemmaTotalFrequency::get))
@@ -58,5 +59,17 @@ public class SearchingUtils {
 
     public Map<Page, Float> getAbsRelMap(List<Page> pages, Set<String> searchLemmas){
         return indexService.findPagesWithAbsRel(pages, searchLemmas.stream().toList());
+    }
+
+    private Map<String, Integer> getLemmaTotalFrequenceMap(Set<String> lemmasString){
+        Map<String, Integer> lemmaTotalFrequency = site == null
+                ? lemmaService.getGlobalFrequenciesByLemmas(lemmasString.stream().toList())
+                : lemmaService.getFrequenciesBySiteAndLemmas(site, lemmasString.stream().toList());
+        if(lemmasString.size() != lemmaTotalFrequency.size()){
+            Set<String> nullFrequencyLemma = lemmasString.stream().filter(l -> !lemmaTotalFrequency.containsKey(l))
+                    .collect(Collectors.toSet());
+            nullFrequencyLemma.forEach(l -> lemmaTotalFrequency.put(l, 0));
+        }
+        return lemmaTotalFrequency;
     }
 }

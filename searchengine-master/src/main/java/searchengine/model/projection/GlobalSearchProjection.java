@@ -4,5 +4,4 @@ import searchengine.model.entity.Page;
 
 public interface GlobalSearchProjection {
     Page getPage();
-    Double getTotalRank();
 }

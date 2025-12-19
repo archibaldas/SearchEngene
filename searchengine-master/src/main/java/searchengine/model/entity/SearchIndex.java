@@ -25,6 +25,6 @@ public class SearchIndex {
     @JoinColumn(name = "lemma_id", nullable = false)
     private Lemma lemma;
 
-    @Column(name = "`rank`")
-    private Float rank;
+    @Column(name = "`rank`", nullable = false)
+    private Float rank = 0.0f;
 }

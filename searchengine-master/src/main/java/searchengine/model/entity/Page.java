@@ -31,7 +31,7 @@ public class Page {
     private Integer code;
 
     @Lob
-    @Column(nullable = false, columnDefinition = "MEDIUMTEXT")
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
     @OneToMany(mappedBy = "page", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)

@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import searchengine.core.utils.BeanUtils;
 import searchengine.exceptions.NoFoundEntityException;
 import searchengine.model.entity.Lemma;
 import searchengine.model.entity.Page;
@@ -29,32 +28,8 @@ public class IndexServiceImpl implements IndexService {
     private final SearchIndexRepository indexRepository;
 
     @Override
-    public List<SearchIndex> findAllByPage(Page page) {
-        return indexRepository.findAllByPage(page);
-    }
-
-    @Override
-    public SearchIndex findById(Long id) {
-        return indexRepository.findById(id)
-                .orElseThrow(() -> new NoFoundEntityException("Индекс c", id, " в базе данных не найден."));
-    }
-
-    @Override
-    public List<SearchIndex> findByLemma(Lemma lemma) {
-        return indexRepository.findByLemma(lemma);
-    }
-
-    @Override
     public int count() {
         return Math.toIntExact(indexRepository.count());
-    }
-
-    @Override
-    @Transactional
-    public SearchIndex update(SearchIndex entity) {
-        SearchIndex updatedIndex = findById(entity.getId());
-        BeanUtils.copyNotNullProperties(entity, updatedIndex);
-        return indexRepository.save(updatedIndex);
     }
 
     @Override
@@ -99,16 +74,6 @@ public class IndexServiceImpl implements IndexService {
         return results.stream()
                 .map(GlobalSearchProjection::getPage)
                 .collect(Collectors.toList());
-    }
-
-    @Override
-    public Map<Page,Float> findPagesByAllLemmasGlobalWithRank(List<String> lemmas, long lemmaCount) {
-        List<GlobalSearchProjection> results = indexRepository.findPagesByAllLemmasGlobal(lemmas, lemmaCount);
-        return results.stream().collect(Collectors.toMap(
-                GlobalSearchProjection::getPage,
-                projection -> projection.getTotalRank().floatValue()
-                )
-        );
     }
 
     @Override

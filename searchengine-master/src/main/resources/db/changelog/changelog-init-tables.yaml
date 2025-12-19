@@ -1,0 +1,290 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-index-table
+      author: user
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_index
+                  name: id
+                  type: BIGINT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: page_id
+                  type: BIGINT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: lemma_id
+                  type: BIGINT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: rank
+                  type: FLOAT
+            tableName: index
+  - changeSet:
+      id: 002-create-lemma-table
+      author: user
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_lemma
+                  name: id
+                  type: BIGINT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: site_id
+                  type: BIGINT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: lemma
+                  type: VARCHAR(255)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: frequency
+                  type: INT
+            tableName: lemma
+  - changeSet:
+      id: 003-create-page-table
+      author: user
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_page
+                  name: id
+                  type: BIGINT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: site_id
+                  type: BIGINT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: path
+                  type: VARCHAR(500)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: code
+                  type: INT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: content
+                  type: TEXT
+            tableName: page
+  - changeSet:
+      id: 004-create-site-table
+      author: user
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_site
+                  name: id
+                  type: BIGINT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: status
+                  type: VARCHAR(20)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: status_time
+                  type: timestamp with time zone
+              - column:
+                  name: last_error
+                  type: TEXT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: url
+                  type: VARCHAR(100)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: name
+                  type: VARCHAR(50)
+            tableName: site
+  - changeSet:
+      id: 005-create-site_id-lemma-unique-constraint-in-lemma
+      author: user
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addUniqueConstraint:
+            columnNames: site_id, lemma
+            constraintName: uc_6c47244fd7b80dbafdd6c82cf
+            tableName: lemma
+  - changeSet:
+      id: 006-create-idx_index_lemma_page-index-in-index
+      author: user
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createIndex:
+            columns:
+              - column:
+                  name: lemma_id
+              - column:
+                  name: page_id
+            indexName: idx_index_lemma_page
+            tableName: index
+  - changeSet:
+      id: 007-create-idx_lemma-index-in-lemma
+      author: user
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createIndex:
+            columns:
+              - column:
+                  name: lemma
+            indexName: idx_lemma
+            tableName: lemma
+  - changeSet:
+      id: 008-create-idx_lemma_lemma_site-index-in-lemma
+      author: user
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createIndex:
+            columns:
+              - column:
+                  name: lemma
+              - column:
+                  name: site_id
+            indexName: idx_lemma_lemma_site
+            tableName: lemma
+  - changeSet:
+      id: 009-create-idx_page_path-index-in-page
+      author: user
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createIndex:
+            columns:
+              - column:
+                  name: path
+            indexName: idx_page_path
+            tableName: page
+  - changeSet:
+      id: 010-create-idx_site_url-index-in-site
+      author: user
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createIndex:
+            columns:
+              - column:
+                  name: url
+            indexName: idx_site_url
+            tableName: site
+  - changeSet:
+      id: 011-create-index_page_site_path-index-in-page
+      author: user
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createIndex:
+            columns:
+              - column:
+                  name: site_id
+              - column:
+                  name: path
+            indexName: index_page_site_path
+            tableName: page
+  - changeSet:
+      id: 012-create-foreign-key-constraint-and-idx_index_lemma-index-in-index
+      author: user
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: lemma_id
+            baseTableName: index
+            constraintName: FK_INDEX_ON_LEMMA
+            referencedColumnNames: id
+            referencedTableName: lemma
+        - createIndex:
+            columns:
+              - column:
+                  name: lemma_id
+            indexName: idx_index_lemma
+            tableName: index
+  - changeSet:
+      id: 013-create-foreign-key-constraint-and-idx_index_page-index-in-index
+      author: user
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: page_id
+            baseTableName: index
+            constraintName: FK_INDEX_ON_PAGE
+            referencedColumnNames: id
+            referencedTableName: page
+        - createIndex:
+            columns:
+              - column:
+                  name: page_id
+            indexName: idx_index_page
+            tableName: index
+  - changeSet:
+      id: 014-create-foreign-key-constraint-and-idx_lemma_site-index-in-lemma
+      author: user
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: site_id
+            baseTableName: lemma
+            constraintName: FK_LEMMA_ON_SITE
+            onDelete: CASCADE
+            referencedColumnNames: id
+            referencedTableName: site
+        - createIndex:
+            columns:
+              - column:
+                  name: site_id
+            indexName: idx_lemma_site
+            tableName: lemma
+  - changeSet:
+      id: 015-create-foreign-key-constraint-and-idx_page_site-index-in-page
+      author: user
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: site_id
+            baseTableName: page
+            constraintName: FK_PAGE_ON_SITE
+            onDelete: CASCADE
+            referencedColumnNames: id
+            referencedTableName: site
+        - createIndex:
+            columns:
+              - column:
+                  name: site_id
+            indexName: idx_page_site
+            tableName: page
+

@@ -23,13 +23,14 @@ public class SearchServiceImpl implements SearchService {
     @Override
     public SearchResponse search(String query, String siteUrl, int offset, int limit){
         if(query.isEmpty()){
-            throw new SearchingException("Задан пустой поисковый апрос");
+            throw new SearchingException("Задан пустой поисковый запрос");
         }
         Set<String> lemmaSet = lemmaFinder.getLemmasSetFromSearch(query);
         List<Page> matchingPages = searchingUtils.getMatchingPages(lemmaSet, siteUrl);
 
         if (matchingPages.isEmpty()) {
-            throw new SearchingException("Ни чего не найдено по вашему запросу");
+            return new SearchResponse(true, 0,
+                    new ArrayList<>());
         }
         Map<Page, Float> absRelMap = searchingUtils.getAbsRelMap(matchingPages, lemmaSet);
 

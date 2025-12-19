@@ -4,7 +4,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import searchengine.model.entity.Lemma;
 import searchengine.model.entity.Page;
 import searchengine.model.entity.SearchIndex;
 import searchengine.model.entity.SiteEntity;
@@ -15,9 +14,6 @@ import java.util.List;
 
 @Repository
 public interface SearchIndexRepository extends JpaRepository<SearchIndex, Long> {
-
-    List<SearchIndex> findByLemma(Lemma lemma);
-    List<SearchIndex> findAllByPage(Page page);
 
     @Query("SELECT si.page FROM SearchIndex si " +
     "WHERE si.lemma.lemma IN :lemmas AND si.lemma.site = :site " +

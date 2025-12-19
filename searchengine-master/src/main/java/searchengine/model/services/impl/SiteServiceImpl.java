@@ -72,22 +72,6 @@ public class SiteServiceImpl implements SiteService {
     }
 
     @Override
-    public List<SiteEntity> findByStatus(StatusType statusType) {
-        return siteEntityRepository.findByStatus(statusType);
-    }
-
-    @Override
-    public SiteEntity findById(Long id) {
-        return siteEntityRepository.findById(id).orElseThrow(
-                () -> new NoFoundEntityException("Сайт с ID: ", id, " не сохраненен в базе данных"));
-    }
-
-    @Override
-    public List<SiteEntity> findAll() {
-        return siteEntityRepository.findAll();
-    }
-
-    @Override
     public SiteEntity findByUrl(String url) {
         return siteEntityRepository.findByUrl(url).orElseThrow(
                 () -> new NoFoundEntityException("Сайт с адресом: ", url, " не сохранен в базе данных"));
@@ -111,7 +95,7 @@ public class SiteServiceImpl implements SiteService {
 
     @Override
     @Transactional
-    public SiteEntity updateStatus(SiteEntity siteEntity){
+    public void updateStatus(SiteEntity siteEntity){
         if(siteEntity.getStatus().equals(StatusType.FAILED)){
             siteEntityRepository.updateErrorStatus(
                     siteEntity.getId(),
@@ -120,7 +104,6 @@ public class SiteServiceImpl implements SiteService {
                     siteEntity.getLastError());
         }
         siteEntityRepository.updateStatus(siteEntity.getId(), siteEntity.getStatus(), Instant.now());
-        return findById(siteEntity.getId());
     }
 
     @Override

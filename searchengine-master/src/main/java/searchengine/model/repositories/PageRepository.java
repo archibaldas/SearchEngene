@@ -19,7 +19,4 @@ public interface PageRepository extends JpaRepository<Page, Long> {
     List<Page> findAllBySite(SiteEntity site);
 
     int countBySite(SiteEntity site);
-
-    @Query("SELECT p FROM Page p WHERE p.id IN :pageIds")
-    List<Page> findByIds(@Param("pageIds") List<Long> pageIds);
 }

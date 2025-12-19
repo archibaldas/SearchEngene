@@ -8,13 +8,10 @@ import java.util.Map;
 import java.util.Set;
 
 public interface LemmaService {
-    List<Lemma> findAllBySite(SiteEntity siteEntity);
     Lemma findById(Long id);
-    Lemma findByLemmaAndSite(String lemma, SiteEntity site);
-    List<Lemma> findByLemma(String lemma);
     void updateLemmasForSite(SiteEntity site, Map<String,Integer> lemmasOnPage);
     int count();
-    Lemma update(Lemma entity);
+    void update(Lemma entity);
     void delete(Lemma entity);
     List<Lemma> findBySiteAndLemmaIn(SiteEntity site, Set<String> lemmaSet);
     Map<String, Integer> getFrequenciesBySiteAndLemmas(SiteEntity site, List<String> lemmas);

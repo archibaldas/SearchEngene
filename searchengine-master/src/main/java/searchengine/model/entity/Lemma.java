@@ -28,8 +28,8 @@ public class Lemma {
     @Column(nullable = false)
     private String lemma;
 
-    @Column
-    private Integer frequency;
+    @Column(nullable = false)
+    private Integer frequency = 0;
 
     @OneToMany(mappedBy = "lemma", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<SearchIndex> indexes;
