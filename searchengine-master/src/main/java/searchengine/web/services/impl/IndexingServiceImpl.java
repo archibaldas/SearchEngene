@@ -11,6 +11,7 @@ import searchengine.core.components.PageContentExtractor;
 import searchengine.exceptions.IndexingProcessException;
 import searchengine.exceptions.PageIndexingException;
 import searchengine.exceptions.SiteIndexingException;
+import searchengine.mapper.SiteMapper;
 import searchengine.model.entity.StatusType;
 import searchengine.model.services.CleanUpService;
 import searchengine.model.services.SiteService;
@@ -20,14 +21,15 @@ import searchengine.config.SitesList;
 import searchengine.model.entity.SiteEntity;
 import searchengine.core.pool.SiteIndexingTask;
 
+import java.net.MalformedURLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static searchengine.core.utils.SiteStatusUtils.STOP_INDEXING;
-import static searchengine.core.utils.SiteStatusUtils.setFailedStatus;
+import static searchengine.core.utils.HtmlUtils.getBaseUrl;
+import static searchengine.core.utils.SiteStatusUtils.*;
 
 @Service
 @Slf4j
@@ -42,6 +44,8 @@ public class IndexingServiceImpl implements IndexingService {
     private final CleanUpService cleanUpService;
     private final SitesList sitesList;
     private final ForkJoinPool forkJoinPool;
+
+    private final SiteMapper siteMapper;
 
     private volatile Future<?> indexingFuture;
 
@@ -116,14 +120,17 @@ public class IndexingServiceImpl implements IndexingService {
     @Override
     public void indexPage(String url) throws PageIndexingException, SiteIndexingException {
         log.debug("Индексация страницы {}", url);
-
         if(url.isBlank()) throw new PageIndexingException("URL не может быть пустым");
 
         indexingPageService.deletePageWithDataByUrl(url);
         try {
+            SiteEntity siteEntity = siteService.findByUrl(getBaseUrl(url));
             indexingPageService.indexing(url);
+            siteService.updateStatus(setIndexedStatus(siteEntity));
         } catch (SiteIndexingException e) {
             throw new PageIndexingException(e.getMessage());
+        } catch (MalformedURLException e) {
+            throw new PageIndexingException("Ошибка формата ссылки: ", url);
         }
     }
 }
